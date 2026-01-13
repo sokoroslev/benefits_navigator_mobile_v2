@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
+import Fuse from "fuse.js";
 import { useNavigation } from "@react-navigation/native";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { measures } from "../data/measures";
@@ -9,7 +10,17 @@ import { Chip, SearchInput, SkeletonCard, colors } from "../ui";
 import { useStore } from "../store/store";
 import { RootStackParamList } from "../navigation/types";
 import { MeasureListItem } from "./MeasureListItem";
-import { containsCI } from "../utils/util";
+
+const CATEGORY_LABELS: Record<Measure["category"], string> = {
+  family: "Семья",
+  health: "Здоровье",
+  business: "Бизнес",
+  education: "Образование",
+  housing: "Жильё",
+  employment: "Работа",
+  disability: "Инвалидность",
+  tax: "Налоги",
+};
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -39,6 +50,7 @@ export function BrowseScreen() {
   const nav = useNavigation<Nav>();
   const { state } = useStore();
   const [q, setQ] = useState("");
+  const [category, setCategory] = useState<Measure["category"] | "all">("all");
   const [level, setLevel] = useState<MeasureLevel | "all">("all");
   const [type, setType] = useState<MeasureType | "all">("all");
   const [status, setStatus] = useState<Eligibility | "all">("all");
@@ -54,23 +66,49 @@ export function BrowseScreen() {
   const results = useMemo(() => evaluateMeasures(state.profile, measures), [state.profile]);
   const byResult = useMemo(() => new Map(results.map((r) => [r.measureId, r])), [results]);
 
+  const categoryOptions = useMemo(() => {
+    const uniq = Array.from(new Set(measures.map((m) => m.category)));
+    // stable order: use the label map
+    uniq.sort((a, b) => CATEGORY_LABELS[a].localeCompare(CATEGORY_LABELS[b], "ru"));
+    return [{ value: "all" as const, label: "Все категории" }].concat(
+      uniq.map((c) => ({ value: c, label: CATEGORY_LABELS[c] }))
+    );
+  }, []);
+
   const filtered = useMemo(() => {
     const region = state.profile.region;
-    return measures
-      .filter((m) => (onlyMyRegion ? (m.regions[0] === "*" ? false : (m.regions as string[]).includes(region)) : true))
+
+    const base = measures
+      .filter((m) => (category === "all" ? true : m.category === category))
+      .filter((m) =>
+        onlyMyRegion ? (m.regions[0] === "*" ? false : (m.regions as string[]).includes(region)) : true
+      )
       .filter((m) => (level === "all" ? true : m.level === level))
       .filter((m) => (type === "all" ? true : m.type === type))
       .filter((m) => {
         if (status === "all") return true;
         const r = byResult.get(m.id);
         return r?.eligibility === status;
-      })
-      .filter((m) => {
-        if (!q.trim()) return true;
-        const hay = `${m.title} ${m.short} ${m.whereToApply.join(" ")} ${m.documents.join(" ")}`;
-        return containsCI(hay, q.trim());
       });
-  }, [q, level, type, status, onlyMyRegion, state.profile.region, byResult]);
+
+    const query = q.trim();
+    if (!query) return base;
+
+    const fuse = new Fuse(base, {
+      threshold: 0.35,
+      ignoreLocation: true,
+      minMatchCharLength: 2,
+      keys: [
+        { name: "title", weight: 0.5 },
+        { name: "summary", weight: 0.3 },
+        { name: "whatYouGet", weight: 0.2 },
+        { name: "documents", weight: 0.2 },
+        { name: "whereToApply", weight: 0.2 },
+      ],
+    });
+
+    return fuse.search(query).map((r) => r.item);
+  }, [q, category, level, type, status, onlyMyRegion, state.profile.region, byResult]);
 
   return (
     <ScrollView contentContainerStyle={styles.content}>
@@ -81,6 +119,17 @@ export function BrowseScreen() {
 
       <View style={styles.filterBlock}>
         <Text style={styles.blockTitle}>Фильтры</Text>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
+          {categoryOptions.map((o) => (
+            <Chip
+              key={o.value}
+              label={o.label}
+              selected={category === o.value}
+              onPress={() => setCategory(o.value)}
+            />
+          ))}
+        </ScrollView>
 
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {levelOptions.map((o) => (

@@ -38,11 +38,23 @@ export interface UserProfile {
 export type MeasureLevel = "federal" | "regional" | "municipal";
 export type MeasureType = "payment" | "benefit" | "service" | "tax_deduction";
 
+export type MeasureCategory =
+  | "family"
+  | "health"
+  | "business"
+  | "education"
+  | "housing"
+  | "employment"
+  | "disability"
+  | "tax";
+
 export interface Measure {
   id: string;
   title: string;
   level: MeasureLevel;
   type: MeasureType;
+
+  category: MeasureCategory;
 
   regions: RegionCode[] | ["*"];
 
@@ -76,4 +88,19 @@ export interface EvaluationResult {
   measureId: string;
   eligibility: Eligibility;
   reasons: string[];
+
+  /**
+   * 0..1 — «насколько подходит» по текущим данным профиля.
+   * Для eligible обычно 1.0, для maybe — 0.5..0.95, для not_eligible — 0..0.5.
+   */
+  fitScore?: number;
+
+  /** 0..100 — удобное значение для UI */
+  fitPercent?: number;
+
+  /**
+   * Короткая причина (одной строкой) для карточки в списке.
+   * Например: «Нужна справка о доходах»
+   */
+  reasonOneLine?: string;
 }

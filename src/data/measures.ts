@@ -7,6 +7,7 @@ export const measures: Measure[] = [
   {
     id: "one_time_birth_payment_fed",
     title: "Единовременное пособие при рождении ребёнка (федеральное)",
+    category: "family",
     level: "federal",
     type: "payment",
     regions: ["*"],
@@ -21,6 +22,7 @@ export const measures: Measure[] = [
   {
     id: "tax_deduction_medical",
     title: "Налоговый вычет за лечение и лекарства",
+    category: "health",
     level: "federal",
     type: "tax_deduction",
     regions: ["*"],
@@ -45,6 +47,7 @@ export const measures: Measure[] = [
   {
     id: "mortgage_450k_third_child",
     title: "Выплата до 450 000 ₽ на погашение ипотеки (при 3-м ребёнке)",
+    category: "housing",
     level: "federal",
     type: "payment",
     regions: ["*"],
@@ -64,6 +67,7 @@ export const measures: Measure[] = [
   {
     id: "regional_newborn_example_mow",
     title: "Региональная поддержка новорождённым (пример: Москва)",
+    category: "family",
     level: "regional",
     type: "benefit",
     regions: ["RU-MOW"],

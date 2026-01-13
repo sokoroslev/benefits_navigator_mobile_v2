@@ -18,12 +18,21 @@ export function MeasureListItem({
 
   const badge =
     evalResult?.eligibility === "eligible"
-      ? { kind: "ok" as const, label: "Подходит" }
+      ? { kind: "ok" as const, label: `Подходит ${evalResult.fitPercent ?? 100}%` }
       : evalResult?.eligibility === "maybe"
-      ? { kind: "maybe" as const, label: "Уточнить" }
+      ? { kind: "maybe" as const, label: `Возможно ${evalResult.fitPercent ?? 75}%` }
       : evalResult?.eligibility === "not_eligible"
       ? { kind: "no" as const, label: "Не подходит" }
       : null;
+
+  const levelLabel =
+    measure.level === "federal"
+      ? "Федеральная"
+      : measure.level === "regional"
+      ? "Региональная"
+      : "Муниципальная";
+
+  const oneReason = evalResult?.reasonOneLine ?? evalResult?.reasons?.[0];
 
   return (
     <Pressable onPress={onOpen}>
@@ -32,9 +41,11 @@ export function MeasureListItem({
           <View style={{ flex: 1, gap: 6 }}>
             <Text style={styles.title}>{measure.title}</Text>
             <Text style={styles.muted}>{measure.short}</Text>
-            <Text style={styles.meta}>
-              {measure.level === "federal" ? "Федеральная" : measure.level === "regional" ? "Региональная" : "Муниципальная"} • {measure.type}
-            </Text>
+            <View style={styles.tagsRow}>
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{levelLabel}</Text>
+              </View>
+            </View>
           </View>
           <View style={{ alignItems: "flex-end", gap: 10 }}>
             {badge ? <Badge kind={badge.kind} label={badge.label} /> : null}
@@ -44,12 +55,10 @@ export function MeasureListItem({
           </View>
         </View>
 
-        {evalResult?.reasons?.length ? (
-          <View style={{ marginTop: 10, gap: 4 }}>
-            {evalResult.reasons.slice(0, 2).map((x, i) => (
-              <Text key={i} style={styles.reason}>• {x}</Text>
-            ))}
-          </View>
+        {oneReason ? (
+          <Text style={styles.reasonLine} numberOfLines={1} ellipsizeMode="tail">
+            {oneReason}
+          </Text>
         ) : null}
 
         <Text style={styles.link}>Подробнее →</Text>
@@ -62,8 +71,17 @@ const styles = StyleSheet.create({
   rowBetween: { flexDirection: "row", justifyContent: "space-between", gap: 12 },
   title: { fontSize: 15, fontWeight: "900", color: colors.text },
   muted: { color: colors.muted, fontSize: 13 },
-  meta: { color: colors.muted, fontSize: 12, marginTop: 2 },
-  reason: { color: colors.muted, fontSize: 12 },
+  tagsRow: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 2 },
+  tag: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 999,
+    backgroundColor: "rgba(0,0,0,0.04)",
+    borderWidth: 1,
+    borderColor: "rgba(0,0,0,0.06)",
+  },
+  tagText: { color: colors.muted, fontSize: 12, fontWeight: "800" },
+  reasonLine: { marginTop: 10, color: colors.muted, fontSize: 12 },
   link: { marginTop: 10, color: colors.primary, fontWeight: "900" },
   star: { fontSize: 22, fontWeight: "900" },
 });
